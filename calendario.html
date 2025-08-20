@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendario de Actividades</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js" crossorigin="anonymous"></script>
+    <script src="script.js" defer></script>
+    <script defer>
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+
+        async function cargarCalendario() {
+            const m = Number(document.getElementById('mes').value);
+            const y = Number(document.getElementById('anio').value);
+
+
+            const grid = document.getElementById('calendario');
+            grid.innerHTML = '';
+            const headers = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+            headers.forEach(h => {
+                const div = document.createElement('div');
+                div.className = 'celda encabezado';
+                div.textContent = h;
+                grid.appendChild(div);
+            });
+
+
+            // calcular días
+            const firstDay = new Date(y, m - 1, 1);
+            const startDow = firstDay.getDay();
+            const daysInMonth = new Date(y, m, 0).getDate();
+
+
+            // cargar eventos del mes
+            let eventos = {};
+            try {
+                const db = await initDb();
+                const stmt = db.prepare("SELECT titulo, descripcion, fecha FROM eventos WHERE strftime('%m', fecha)=:mm AND strftime('%Y', fecha)=:yy");
+                stmt.bind({ ":mm": (m < 10 ? `0${m}` : `${m}`), ":yy": String(y) });
+                while (stmt.step()) {
+                    const row = stmt.getAsObject();
+                    const dia = Number(row.fecha.split('-')[2]);
+                    (eventos[dia] ||= []).push(row);
+                }
+            } catch (e) { console.error(e) }
+            // celdas vacías antes del primer día
+            for (let i = 0; i < startDow; i++) {
+                const div = document.createElement('div');
+                div.className = 'celda';
+                grid.appendChild(div);
+            }
+
+
+            // celdas de días
+            for (let d = 1; d <= daysInMonth; d++) {
+                const div = document.createElement('div');
+                div.className = 'celda';
+                div.innerHTML = `<div class='dia'>${d}</div>`;
+                if (eventos[d]) {
+                    eventos[d].forEach(ev => {
+                        const btn = document.createElement('button');
+                        btn.className = 'evento';
+                        btn.textContent = ev.titulo;
+                        btn.onclick = () => alert(`${ev.titulo}\n${ev.descripcion}\nFecha: ${ev.fecha}`);
+                        div.appendChild(btn);
+                    });
+                }
+                grid.appendChild(div);
+            }
+
+
+            document.getElementById('tituloMes').textContent = `${meses[m - 1]} ${y}`;
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const { mes, anio } = getCurrentMonthYear();
+            for (let i = 1; i <= 12; i++) {
+                const opt = document.createElement('option');
+                opt.value = i; opt.textContent = meses[i - 1];
+                if (i === mes) opt.selected = true;
+                document.getElementById('mes').appendChild(opt);
+            }
+            const yearNow = new Date().getFullYear();
+            for (let y = yearNow - 3; y <= yearNow + 3; y++) {
+                const opt = document.createElement('option');
+                opt.value = y; opt.textContent = y;
+                if (y === anio) opt.selected = true;
+                document.getElementById('anio').appendChild(opt);
+            }
+            document.getElementById('btnMostrar').onclick = cargarCalendario;
+            cargarCalendario();
+        });
+    </script>
+</head>
+
+<body>
+    <header>
+        <h1>Calendario de Actividades</h1>
+        <nav>
+            <a href="index.html">Inicio</a>
+            <a href="calendario.html">Calendario</a>
+            <a href="inquilinos.html">Consulta de Inquilinos</a>
+        </nav>
+    </header>
+
+
+    <div class="container card">
+        <div class="calendar-controls">
+            <label>Mes: <select id="mes"></select></label>
+            <label>Año: <select id="anio"></select></label>
+            <button id="btnMostrar">Mostrar</button>
+            <strong id="tituloMes" style="margin-left:auto"></strong>
+        </div>
+        <div id="calendario" class="calendario"></div>
+    </div>
+
+
+    <footer>© <span id="y"></span> Alamedas de Santa Ana</footer>
+    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+
+</html>

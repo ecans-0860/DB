@@ -1,0 +1,83 @@
+<!doctype html>
+<title>Alamedas de Santa Ana – Inicio</title>
+<link rel="stylesheet" href="style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="script.js" defer></script>
+<script defer>
+document.addEventListener('DOMContentLoaded', async () => {
+try{
+const db = await initDb();
+// Cargar 3 noticias más recientes
+const stmt = db.prepare("SELECT titulo, contenido, fecha FROM Noticias ORDER BY date(Fecha) DESC, id DESC LIMIT 3");
+const wrap = document.getElementById('news');
+while(stmt.step()){
+const r = stmt.getAsObject();
+const div = document.createElement('div');
+div.className = 'item';
+div.innerHTML = `<h4>${esc(r.titulo)}</h4><div class="date">${esc(r.fecha)}</div><p>${esc(r.contenido)}</p>`;
+wrap.appendChild(div);
+}
+if(!wrap.children.length){
+wrap.innerHTML = '<div class="item">No hay noticias disponibles.</div>';
+}
+}catch(err){
+console.error(err);
+showMessage('newsMsg','No se pudieron cargar las noticias.', 'err');
+}
+});
+</script>
+</head>
+<body>
+<header>
+<h1>Residencial Alamedas de Santa Ana</h1>
+<nav>
+<a href="index.html">Inicio</a>
+<a href="calendario.html">Calendario</a>
+<a href="inquilinos.html">Consulta de Inquilinos</a>
+</nav>
+</header>
+
+
+<div class="container grid" style="grid-template-columns:2fr 1fr">
+<section class="card hero" style="grid-column:1 / -1">
+<div>
+<h2>Bienvenidos</h2>
+<p>Portal informativo del residencial, noticias, calendario de actividades y consulta de cuotas de mantenimiento.</p>
+<h3>Integrantes del grupo</h3>
+<ul>
+<li>Nombre 1</li>
+<li>Nombre 2</li>
+<li>Nombre 3</li>
+<li>Nombre 4</li>
+</ul>
+<h3>Ubicación</h3>
+<p>Santa Ana, (agrega dirección específica aquí).</p>
+</div>
+<div class="media">
+<!-- Video o mapa -->
+<iframe src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Video de presentación" allowfullscreen></iframe>
+</div>
+</section>
+
+
+<section class="card news" style="grid-column:1 / -1">
+<h2>Noticias recientes</h2>
+<div id="news"></div>
+<div id="newsMsg" class="msg info" style="display:none"></div>
+</section>
+
+
+<section class="card">
+<h2>Galería</h2>
+<img src="https://picsum.photos/seed/ala1/800/400" alt="Residencial 1" style="width:100%;border-radius:12px;margin-bottom:8px"/>
+<img src="https://picsum.photos/seed/ala2/800/400" alt="Residencial 2" style="width:100%;border-radius:12px"/>
+</section>
+</div>
+
+
+<footer>
+© <span id="year"></span> Alamedas de Santa Ana
+</footer>
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

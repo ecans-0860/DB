@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Consulta de Inquilinos</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js" crossorigin="anonymous"></script>
+    <script src="script.js" defer></script>
+    <script defer>
+        async function consultar(e) {
+            e.preventDefault();
+            const dpi = document.getElementById('dpi').value.trim();
+            const casa = Number(document.getElementById('casa').value);
+            const nombre = document.getElementById('nombre').value.trim();
+            const apellido = document.getElementById('apellido').value.trim();
+            const fnac = document.getElementById('fnac').value;
+
+
+            if (!dpi || !casa || !nombre || !apellido || !fnac) {
+                showMessage('msg', 'Todos los campos son obligatorios.', 'warn');
+                return;
+            }
+            try {
+                const db = await initDb();
+                const stmt = db.prepare(`SELECT * FROM inquilinos WHERE dpi=:dpi AND numero_casa=:casa`);
+                stmt.bind({ ":dpi": dpi, ":casa": casa });
+                if (!stmt.step()) {
+                    showMessage('msg', 'Datos no encontrados', 'err');
+                    return;
+                }
+                const r = stmt.getAsObject();
+                if (r.primer_nombre.toLowerCase() !== nombre.toLowerCase() || r.primer_apellido.toLowerCase() !== apellido.toLowerCase() || r.fecha_nacimiento !== fnac) {
+                    showMessage('msg', 'Los datos no coinciden', 'err');
+                    return;
+                }
+
+
+                const { mes, anio } = getCurrentMonthYear();
+                const stmt2 = db.prepare(`SELECT pagado FROM pagos WHERE numero_casa=:casa AND mes=:m AND anio=:y`);
+                stmt2.bind({ ":casa": casa, ":m": mes, ":y": anio });
+                if (stmt2.step() && Number(stmt2.getAsObject().pagado) === 1) {
+                    showMessage('msg', 'Cuota de mantenimiento al día', 'ok');
+                } else {
+                    showMessage('msg', 'Cuota de mantenimiento pendiente', 'warn');
+                }
+            } catch (e) {
+                console.error(e);
+                showMessage('msg', 'Error al consultar la base', 'err');
+            }
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('frm').onsubmit = consultar;
+        });
+    </script>
+</head>
+
+<body>
+    <header>
+        <h1>Consulta de Inquilinos</h1>
+        <nav>
+            <a href="index.html">Inicio</a>
+            <a href="calendario.html">Calendario</a>
+            <a href="inquilinos.html">Consulta de Inquilinos</a>
+        </nav>
+    </header>
+
+
+    <div class="container card">
+        <form id="frm" class="form">
+            <div class="row">
+                <div>
+                    <label for="dpi">DPI</label>
+                    <input id="dpi" type="text" />
+                </div>
+                <div>
+                    <label for="casa">Número de Casa</label>
+                    <input id="casa" type="number" />
+                </div>
+            </div>
+            <div class="row">
+                <div>
+                    <label for="nombre">Primer Nombre</label>
+                    <input id="nombre" type="text" />
+                </div>
+                <div>
+                    <label for="apellido">Primer Apellido</label>
+                    <input id="apellido" type="text" />
+                </div>
+            </div>
+            <div>
+                <label for="fnac">Fecha de Nacimiento</label>
+                <input id="fnac" type="date" />
+            </div>
+            <button type="submit">Consultar</button>
+            <div id="msg" class="msg info"></div>
+        </form>
+    </div>
+
+
+    <footer>© <span id="y"></span> Alamedas de Santa Ana</footer>
+    <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+
+</html>
