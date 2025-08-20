@@ -24,7 +24,7 @@
             }
             try {
                 const db = await initDb();
-                const stmt = db.prepare(`SELECT * FROM inquilinos WHERE dpi=:dpi AND numero_casa=:casa`);
+                const stmt = db.prepare(`SELECT * FROM inquilino WHERE dpi=:dpi AND numerocasa=:casa`);
                 stmt.bind({ ":dpi": dpi, ":casa": casa });
                 if (!stmt.step()) {
                     showMessage('msg', 'Datos no encontrados', 'err');
@@ -38,7 +38,7 @@
 
 
                 const { mes, anio } = getCurrentMonthYear();
-                const stmt2 = db.prepare(`SELECT pagado FROM pagos WHERE numero_casa=:casa AND mes=:m AND anio=:y`);
+                const stmt2 = db.prepare(`SELECT pagado FROM pagoCuota WHERE numerocasa=:casa AND mescuota=:m AND aniocuota=:y`);
                 stmt2.bind({ ":casa": casa, ":m": mes, ":y": anio });
                 if (stmt2.step() && Number(stmt2.getAsObject().pagado) === 1) {
                     showMessage('msg', 'Cuota de mantenimiento al día', 'ok');
